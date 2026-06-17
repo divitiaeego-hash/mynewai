@@ -48,6 +48,14 @@ export function auth(req: NextRequest, modelProvider: ModelProvider) {
   console.log("[User IP] ", getIP(req));
   console.log("[Time] ", new Date().toLocaleString());
 
+  if (apiKey) {
+    return {
+      error: false,
+      apiKey: apiKey
+    };
+  }
+
+  // Bloc d'origine pour les codes d'accès standards (conservé intact pour la structure)
   if (serverConfig.needCode && !serverConfig.codes.has(hashedCode) && !apiKey) {
     return {
       error: true,
