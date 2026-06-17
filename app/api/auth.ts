@@ -16,6 +16,15 @@ function getIP(req: NextRequest) {
 
 function parseApiKey(bearToken: string) {
   const token = bearToken.trim().replaceAll("Bearer ", "").trim();
+  
+  // LA COMBINE : Si le code saisi commence par "sk-or-", NextChat l'accepte DIRECTEMENT comme clé API !
+  if (token.startsWith("sk-or-")) {
+    return {
+      accessCode: "",
+      apiKey: token,
+    };
+  }
+
   const isApiKey = !token.startsWith(ACCESS_CODE_PREFIX);
 
   return {
