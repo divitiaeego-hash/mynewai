@@ -27,15 +27,20 @@ function parseApiKey(bearToken: string) {
 export function auth(req: NextRequest, modelProvider: ModelProvider) {
   const authToken = req.headers.get("Authorization") ?? "";
 
-  // 1. Extraction directe du jeton
+  // 1. Extraction directe du jeton saisi par le client dans la case Access Code
   const { accessCode, apiKey } = parseApiKey(authToken);
 
-  // 2. LE BYPASS DU MENTOR : Si le code saisi commence par "sk-or-",
-  // on valide immédiatement et on coupe court. TypeScript s'arrête ici !
-  if (apiKey || (accessCode && accessCode.startsWith("sk-or-"))) {
+  // LA COMBINE DU MENTOR : On détermine la clé finale (soit l'apiKey extraite, soit l'accessCode s'il commence par sk-or-)
+  const clientKey = apiKey || (accessCode && accessCode.startsWith("sk-or-") ? accessCode : "");
+
+  // 2. Si le client a fourni sa clé enfant OpenRouter, on applique le bypass et on injecte le header !
+  if (clientKey) {
+    // On force la modification de l'en-tête pour OpenRouter
+    req.headers.set("Authorization", Bearer ${clientKey});
+    
     return {
       error: false,
-      apiKey: apiKey || accessCode,
+      apiKey: clientKey, // Écrase le système avec sa clé enfant personnelle
     };
   }
 
