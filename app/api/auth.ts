@@ -27,24 +27,27 @@ function parseApiKey(bearToken: string) {
 export function auth(req: NextRequest, modelProvider: ModelProvider) {
   const authToken = req.headers.get("Authorization") ?? "";
 
-  // 1. Extraction directe du jeton saisi par le client dans la case Access Code
+  // 1. Extraction directe du jeton saisi par le client
   const { accessCode, apiKey } = parseApiKey(authToken);
 
-  // LA COMBINE DU MENTOR : On détermine la clé finale (soit l'apiKey extraite, soit l'accessCode s'il commence par sk-or-)
-  const clientKey = apiKey || (accessCode && accessCode.startsWith("sk-or-") ? accessCode : "");
-
-  // 2. Si le client a fourni sa clé enfant OpenRouter, on applique le bypass et on injecte le header !
-  if (clientKey) {
-    // On force la modification de l'en-tête pour OpenRouter
-    req.headers.set("Authorization", Bearer ${clientKey});
-    
+  // 2. LE BYPASS DU MENTOR : Routage et injection de l'en-tete propre
+  if (apiKey && apiKey.startsWith("sk-or-")) {
+    req.headers.set("Authorization", "Bearer " + apiKey);
     return {
       error: false,
-      apiKey: clientKey, // Écrase le système avec sa clé enfant personnelle
+      apiKey: apiKey,
     };
   }
 
-  // 3. Suite stricte du code d'origine de NextChat (utilisé uniquement si ce n'est pas une clé)
+  if (accessCode && accessCode.startsWith("sk-or-")) {
+    req.headers.set("Authorization", "Bearer " + accessCode);
+    return {
+      error: false,
+      apiKey: accessCode,
+    };
+  }
+
+  // 3. Suite stricte du code d'origine de NextChat
   const hashedCode = md5.hash(accessCode ?? "").trim();
   const serverConfig = getServerSideConfig();
   
