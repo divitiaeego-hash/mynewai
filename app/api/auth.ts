@@ -16,15 +16,6 @@ function getIP(req: NextRequest) {
 
 function parseApiKey(bearToken: string) {
   const token = bearToken.trim().replaceAll("Bearer ", "").trim();
-  
-  // LA COMBINE : Si le code saisi commence par "sk-or-", NextChat l'accepte DIRECTEMENT comme clé API !
-  if (token.startsWith("sk-or-")) {
-    return {
-      accessCode: "",
-      apiKey: token,
-    };
-  }
-
   const isApiKey = !token.startsWith(ACCESS_CODE_PREFIX);
 
   return {
@@ -36,26 +27,28 @@ function parseApiKey(bearToken: string) {
 export function auth(req: NextRequest, modelProvider: ModelProvider) {
   const authToken = req.headers.get("Authorization") ?? "";
 
-  // check if it is openai api key or user token
+  // 1. Extraction directe du jeton
   const { accessCode, apiKey } = parseApiKey(authToken);
 
-  const hashedCode = md5.hash(accessCode ?? "").trim();
+  // 2. LE BYPASS DU MENTOR : Si le code saisi commence par "sk-or-",
+  // on valide immédiatement et on coupe court. TypeScript s'arrête ici !
+  if (apiKey || (accessCode && accessCode.startsWith("sk-or-"))) {
+    return {
+      error: false,
+      apiKey: apiKey || accessCode,
+    };
+  }
 
+  // 3. Suite stricte du code d'origine de NextChat (utilisé uniquement si ce n'est pas une clé)
+  const hashedCode = md5.hash(accessCode ?? "").trim();
   const serverConfig = getServerSideConfig();
+  
   console.log("[Auth] allowed hashed codes: ", [...serverConfig.codes]);
   console.log("[Auth] got access code:", accessCode);
   console.log("[Auth] hashed access code:", hashedCode);
   console.log("[User IP] ", getIP(req));
   console.log("[Time] ", new Date().toLocaleString());
 
-  if (apiKey) {
-    return {
-      error: false,
-      apiKey: apiKey
-    };
-  }
-
-  // Bloc d'origine pour les codes d'accès standards (conservé intact pour la structure)
   if (serverConfig.needCode && !serverConfig.codes.has(hashedCode) && !apiKey) {
     return {
       error: true,
