@@ -145,4 +145,3 @@ export function auth(req: NextRequest, modelProvider: ModelProvider) {
     error: false,
   };
 }
-
